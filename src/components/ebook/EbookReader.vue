@@ -14,11 +14,11 @@ export default {
     initEpub(url) {
       const baseUrl =
         "http://192.168.0.101:8383/epub/" + this.fileName + ".epub";
-      this.book = new Epub(baseUrl);
+      this.book = new Epub(baseUrl)
+      this.setCurrentBook(this.book)
       this.rendition = this.book.renderTo("read", {
         width: window.innerWidth,
         height: window.innerHeight,
-        methos: "default"
       });
       this.rendition.display();
       this.rendition.on("touchstart", event => {
@@ -41,6 +41,14 @@ export default {
         } else {
           this.toggleTitleAndMenu();
         }
+        this.rendition.hooks.content.register(contents => {
+          Promise.all([
+            contents.addStylesheet(`${process.env.VUE_APP_RES_URL}/fonts/daysOne.css`),
+            contents.addStylesheet(`${process.env.VUE_APP_RES_URL}/fonts/cabin.css`),
+            contents.addStylesheet(`${process.env.VUE_APP_RES_URL}/fonts/montserrat.css`),
+            contents.addStylesheet(`${process.env.VUE_APP_RES_URL}/fonts/tangerine.css`)
+          ]).then(() => { console.log("are you ok") })
+        })
       });
     },
     prevPage() {
@@ -56,10 +64,16 @@ export default {
       }
     },
     toggleTitleAndMenu() {
+      if(this.menuVisible) {
+        this.setSettingVisible(-1)
+        this.setFontFamilyVisible(false)
+      }
       this.setMenuVisible(!this.menuVisible)
     },
     hideTitleAndMenu() {
       this.setMenuVisible(false)
+      this.setSettingVisible(-1)
+      this.setFontFamilyVisible(false)
     }
   },
   mounted() {

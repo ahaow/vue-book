@@ -20,20 +20,25 @@
         </div>
       </div>
     </transition>
+    <ebook-setting-font></ebook-setting-font>
+    <ebook-setting-font-popup></ebook-setting-font-popup>
   </div>
 </template>
 
 <script>
-import { ebookMixin } from "../../utils/mixin";
+import EbookSettingFont from './EbookSettingFont'
+import EbookSettingFontPopup from './EbookSettingFontPopup'
+import { ebookMixin } from "../../utils/mixin"
 export default {
   mixins: [ebookMixin],
-  data() {
-    return {
-      settingVisible: 0
-    };
+  components: {
+    EbookSettingFont,
+    EbookSettingFontPopup
   },
   methods: {
-    showSetting(key) {}
+    showSetting(key) {
+      this.setSettingVisible(key)
+    }
   }
 };
 </script>
@@ -51,6 +56,7 @@ export default {
   height: px2rem(48);
   box-shadow: 0 px2rem(-8) px2rem(8) rgba(0, 0, 0, 0.15);
   font-size: px2rem(22);
+  background-color: #fff;
   &.hide-box-shadow {
     box-shadow: none;
   }
