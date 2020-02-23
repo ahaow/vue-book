@@ -7,20 +7,33 @@
 <script>
 import { ebookMixin } from "../../utils/mixin";
 import Epub from "epubjs";
+import {
+  getFontFamily,
+  getFontSize,
+  getLocalStorage, getTheme,
+  saveFontFamily,
+  saveFontSize,
+  saveTheme
+} from "../../utils/localStorage";
 global.ePub = Epub;
 export default {
   mixins: [ebookMixin],
   methods: {
     initEpub(url) {
       const baseUrl =
-        "http://192.168.0.101:8383/epub/" + this.fileName + ".epub";
+        "http://192.168.0.102:8383/epub/" + this.fileName + ".epub";
       this.book = new Epub(baseUrl)
       this.setCurrentBook(this.book)
       this.rendition = this.book.renderTo("read", {
         width: window.innerWidth,
         height: window.innerHeight,
       });
-      this.rendition.display();
+      this.rendition.display().then(() => {
+        this.initFontSize()
+        this.initFontFamily()
+        this.initTheme()
+        this.initGlobalStyle()
+      });
       this.rendition.on("touchstart", event => {
         this.touchStartX = event.changedTouches[0].clientX;
         this.touchStartTime = event.timeStamp;
@@ -50,6 +63,36 @@ export default {
           ]).then(() => { console.log("are you ok") })
         })
       });
+    },
+    initFontSize() {
+      let fontSize = getFontSize(this.fileName)
+      if(!fontSize) {
+        saveFontSize(this.fileName,this.defaultFontSize)
+      } else {
+        this.rendition.themes.fontSize(fontSize + "px")
+        this.setDefaultFontSize(fontSize)
+      }
+    },
+    initFontFamily() {
+      let font = getFontFamily(this.fileName)
+      if(!font) {
+        saveFontFamily(this.fileName,this.defaultFontFamily)
+      } else {
+        this.rendition.themes.font(font)
+        this.setDefaultFontFamily(font)
+      }
+    },
+    initTheme() {
+      let defaultTheme = getTheme(this.fileName)
+      if(!defaultTheme) {
+        defaultTheme = this.themeList[0].name
+        saveTheme(this.fileName,defaultTheme)
+      }
+      this.setDefaultTheme(defaultTheme)
+      this.themeList.forEach(theme => {
+        this.rendition.themes.register(theme.name,theme.style)
+      })
+      this.rendition.themes.select(defaultTheme)
     },
     prevPage() {
       if (this.rendition) {
