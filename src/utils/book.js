@@ -120,3 +120,7 @@ export function removeAllCss() {
   removeCas("http://192.168.0.102:8383/theme/theme_gold.css")
   removeCas("http://192.168.0.102:8383/theme/theme_night.css")
 }
+
+export function flatten(array) {
+  return [].concat(...array.map(item => [].concat(item,...flatten(item.subitems))))
+}
