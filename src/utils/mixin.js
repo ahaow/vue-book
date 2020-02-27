@@ -1,6 +1,7 @@
 import {mapGetters, mapActions} from 'vuex'
 import {addCss, removeAllCss, themeList} from './book';
-import {getReadTime, saveLocation} from "./localStorage";
+import {getBookmark, getReadTime, saveLocation} from "./localStorage";
+import book from "../store/modules/book";
 
 export const ebookMixin = {
   computed: {
@@ -28,7 +29,7 @@ export const ebookMixin = {
     ]),
     themeList() {
       return themeList(this)
-    }
+    },
   },
   methods: {
     ...mapActions([
@@ -81,18 +82,28 @@ export const ebookMixin = {
         this.setProgress(Math.floor(progress * 100))
         this.setSection(currentLocation.start.index)
         saveLocation(this.fileName, startCfi)
+        const bookmark = getBookmark(this.fileName)
+        if (bookmark) {
+          if (bookmark.some(item => item.cfi === startCfi)) {
+            this.setIsBookmark(true)
+          } else {
+            this.setIsBookmark(false)
+          }
+        } else {
+          this.setIsBookmark(false)
+        }
       }
     },
-    display(target,cb) {
+    display(target, cb) {
       if (target) {
         this.currentBook.rendition.display(target).then(() => {
           this.refreshLocation()
-          if(cb) cb()
+          if (cb) cb()
         })
       } else {
         this.currentBook.rendition.display().then(() => {
           this.refreshLocation()
-          if(cb) cb()
+          if (cb) cb()
         })
       }
     },
@@ -102,15 +113,16 @@ export const ebookMixin = {
       this.setFontFamilyVisible(false)
     },
     getReadTimeText() {
-      return this.$t('book.haveRead').replace('$1',this.getReadTimeByMinute(this.fileName))
+      return this.$t('book.haveRead').replace('$1', this.getReadTimeByMinute(this.fileName))
     },
     getReadTimeByMinute(fileName) {
       const readTime = getReadTime(fileName)
-      if(!readTime) {
+      if (!readTime) {
         return 0
       } else {
         return Math.ceil(readTime / 60)
       }
-    }
+    },
+
   },
 }
