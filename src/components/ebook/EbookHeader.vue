@@ -1,11 +1,12 @@
 <template>
   <div class="ebook-header">
-    <span class="ebook-header-text">嚶嚶嚶</span>
+    <span class="ebook-header-text">{{getSectionName}}</span>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
   import { ebookMixin } from '../../utils/mixin'
+
   export default {
     mixins: [ebookMixin]
   }
@@ -13,6 +14,7 @@
 
 <style lang="scss" rel="stylesheet/scss" scoped>
   @import "../../assets/styles/global";
+
   .ebook-header {
     position: absolute;
     top: 0;

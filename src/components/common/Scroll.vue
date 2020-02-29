@@ -6,6 +6,7 @@
 
 <script>
   import { realPx } from '@/utils/utils'
+
   export default {
     props: {
       top: {
@@ -19,15 +20,6 @@
       ifNoScroll: {
         type: Boolean,
         default: false
-      },
-      initPosition: {
-        type: Object,
-        default: () => {
-          return {
-            x: 0,
-            y: 0
-          }
-        }
       }
     },
     methods: {
@@ -47,22 +39,23 @@
     },
     mounted() {
       this.refresh()
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.scrollTo(realPx(this.initPosition.x), realPx(this.initPosition.y))
-        }, 1)
-      })
     }
   }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss" rel="stylesheet/scss" scoped>
   @import "../../assets/styles/global";
+
   .scroll-wrapper {
     position: relative;
     z-index: 100;
     width: 100%;
-    @include scroll;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    &::-webkit-scrollbar {
+      display: none;
+    }
     &.no-scroll {
       overflow: hidden;
     }

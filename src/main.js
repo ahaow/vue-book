@@ -2,12 +2,12 @@ import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
-import i18n from "./lang";
+import i18n from './lang'
 import './assets/styles/icon.css'
-import './assets/fonts/daysOne.css'
-import './assets/fonts/cabin.css'
-import './assets/fonts/montserrat.css'
-import './assets/fonts/tangerine.css'
+import './assets/styles/global.scss'
+// import './mock'
+import './utils/boost'
+import './utils/create-api'
 
 Vue.config.productionTip = false
 

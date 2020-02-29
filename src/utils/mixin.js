@@ -1,7 +1,91 @@
-import {mapGetters, mapActions} from 'vuex'
-import {addCss, removeAllCss, themeList} from './book';
-import {getBookmark, getReadTime, saveLocation} from "./localStorage";
-import book from "../store/modules/book";
+import { mapGetters, mapActions } from 'vuex'
+import { themeList, addCss, removeAllCss, getReadTimeByMinute } from './book'
+import { getBookmark, saveLocation, getBookShelf, saveBookShelf } from './localStorage'
+import { gotoBookDetail, appendAddToShelf, computeId, removeAddFromShelf } from './store'
+import { shelf } from '../api/store'
+
+export const storeShelfMixin = {
+  computed: {
+    ...mapGetters([
+      'isEditMode',
+      'shelfList',
+      'shelfSelected',
+      'shelfTitleVisible',
+      'offsetY',
+      'shelfCategory',
+      'currentType'
+    ])
+  },
+  methods: {
+    ...mapActions([
+      'setIsEditMode',
+      'setShelfList',
+      'setShelfSelected',
+      'setShelfTitleVisible',
+      'setOffsetY',
+      'setShelfCategory',
+      'setCurrentType'
+    ]),
+    showBookDetail(book) {
+      gotoBookDetail(this, book)
+    },
+    getCategoryList(title) {
+      this.getShelfList().then(() => {
+        const categoryList = this.shelfList.filter(book => book.type === 2 && book.title === title)[0]
+        this.setShelfCategory(categoryList)
+      })
+    },
+    getShelfList() {
+      let shelfList = getBookShelf()
+      if (!shelfList) {
+        shelf().then(response => {
+          if (response.status === 200 && response.data && response.data.bookList) {
+            shelfList = appendAddToShelf(response.data.bookList)
+            saveBookShelf(shelfList)
+            return this.setShelfList(shelfList)
+          }
+        })
+      } else {
+        return this.setShelfList(shelfList)
+      }
+    },
+    moveOutOfGroup(f) {
+      this.setShelfList(this.shelfList.map(book => {
+        if (book.type === 2 && book.itemList) {
+          book.itemList = book.itemList.filter(subBook => !subBook.selected)
+        }
+        return book
+      })).then(() => {
+        const list = computeId(appendAddToShelf([].concat(
+          removeAddFromShelf(this.shelfList), ...this.shelfSelected)))
+        this.setShelfList(list).then(() => {
+          this.simpleToast(this.$t('shelf.moveBookOutSuccess'))
+          if (f) f()
+        })
+      })
+    }
+  }
+}
+
+export const storeHomeMixin = {
+  computed: {
+    ...mapGetters([
+      'offsetY',
+      'hotSearchOffsetY',
+      'flapCardVisible'
+    ])
+  },
+  methods: {
+    ...mapActions([
+      'setOffsetY',
+      'setHotSearchOffsetY',
+      'setFlapCardVisible'
+    ]),
+    showBookDetail(book) {
+      gotoBookDetail(this, book)
+    }
+  }
+}
 
 export const ebookMixin = {
   computed: {
@@ -24,12 +108,14 @@ export const ebookMixin = {
       'paginate',
       'pagelist',
       'offsetY',
-      'isBookmark',
-      'speakingIconBottom'
+      'isBookmark'
     ]),
     themeList() {
       return themeList(this)
     },
+    getSectionName() {
+      return this.section ? this.navigation[this.section].label : ''
+    }
   },
   methods: {
     ...mapActions([
@@ -51,26 +137,25 @@ export const ebookMixin = {
       'setPaginate',
       'setPagelist',
       'setOffsetY',
-      'setIsBookmark',
-      'setSpeakingIconBottom'
+      'setIsBookmark'
     ]),
     initGlobalStyle() {
       removeAllCss()
       switch (this.defaultTheme) {
-        case "Default":
-          addCss(`http://192.168.0.102:8383/theme/theme_default.css`)
+        case 'Default':
+          addCss(`${process.env.VUE_APP_RES_URL}/theme/theme_default.css`)
           break
-        case "Eye":
-          addCss(`http://192.168.0.102:8383/theme/theme_eye.css`)
+        case 'Eye':
+          addCss(`${process.env.VUE_APP_RES_URL}/theme/theme_eye.css`)
           break
-        case "Gold":
-          addCss(`http://192.168.0.102:8383/theme/theme_gold.css`)
+        case 'Gold':
+          addCss(`${process.env.VUE_APP_RES_URL}/theme/theme_gold.css`)
           break
-        case "Night":
-          addCss(`http://192.168.0.102:8383/theme/theme_night.css`)
+        case 'Night':
+          addCss(`${process.env.VUE_APP_RES_URL}/theme/theme_night.css`)
           break
         default:
-          addCss(`http://192.168.0.102:8383/theme/theme_default.css`)
+          addCss(`${process.env.VUE_APP_RES_URL}/theme/theme_default.css`)
           break
       }
     },
@@ -91,6 +176,17 @@ export const ebookMixin = {
           }
         } else {
           this.setIsBookmark(false)
+        }
+        if (this.pagelist) {
+          const totalPage = this.pagelist.length
+          const currentPage = currentLocation.start.location
+          if (currentPage && currentPage > 0) {
+            this.setPaginate(currentPage + ' / ' + totalPage)
+          } else {
+            this.setPaginate('')
+          }
+        } else {
+          this.setPaginate('')
         }
       }
     },
@@ -113,16 +209,7 @@ export const ebookMixin = {
       this.setFontFamilyVisible(false)
     },
     getReadTimeText() {
-      return this.$t('book.haveRead').replace('$1', this.getReadTimeByMinute(this.fileName))
-    },
-    getReadTimeByMinute(fileName) {
-      const readTime = getReadTime(fileName)
-      if (!readTime) {
-        return 0
-      } else {
-        return Math.ceil(readTime / 60)
-      }
-    },
-
-  },
+      return this.$t('book.haveRead').replace('$1', getReadTimeByMinute(this.fileName))
+    }
+  }
 }

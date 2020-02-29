@@ -1,23 +1,23 @@
+import { getReadTime } from './localStorage'
 import { realPx } from './utils'
 
 export const FONT_SIZE_LIST = [
-    { fontSize: 12 },
-    { fontSize: 14 },
-    { fontSize: 16 },
-    { fontSize: 18 },
-    { fontSize: 20 },
-    { fontSize: 22 },
-    { fontSize: 24 }
+  { fontSize: 12 },
+  { fontSize: 14 },
+  { fontSize: 16 },
+  { fontSize: 18 },
+  { fontSize: 20 },
+  { fontSize: 22 },
+  { fontSize: 24 }
 ]
 
 export const FONT_FAMILY = [
-  { font: "Default" },
-  { font: "Cabin" },
-  { font: "Days One" },
-  { font: "Montserrat" },
-  { font: "Tangerine" }
+  { font: 'Default' },
+  { font: 'Cabin' },
+  { font: 'Days One' },
+  { font: 'Montserrat' },
+  { font: 'Tangerine' }
 ]
-
 
 export function themeList(vue) {
   return [
@@ -30,12 +30,6 @@ export function themeList(vue) {
           'background': '#cecece',
           'padding-top': `${realPx(48)}px!important`,
           'padding-bottom': `${realPx(48)}px!important`
-        },
-        img: {
-          'width': '100%'
-        },
-        '.epubjs-hl': {
-          'fill': 'red', 'fill-opacity': '0.3', 'mix-blend-mode': 'multiply'
         }
       }
     },
@@ -48,12 +42,6 @@ export function themeList(vue) {
           'background': '#c6c2b6',
           'padding-top': `${realPx(48)}px!important`,
           'padding-bottom': `${realPx(48)}px!important`
-        },
-        img: {
-          'width': '100%'
-        },
-        '.epubjs-hl': {
-          'fill': 'red', 'fill-opacity': '0.3', 'mix-blend-mode': 'multiply'
         }
       }
     },
@@ -66,12 +54,6 @@ export function themeList(vue) {
           'background': '#a9c1a9',
           'padding-top': `${realPx(48)}px!important`,
           'padding-bottom': `${realPx(48)}px!important`
-        },
-        img: {
-          'width': '100%'
-        },
-        '.epubjs-hl': {
-          'fill': 'red', 'fill-opacity': '0.3', 'mix-blend-mode': 'multiply'
         }
       }
     },
@@ -84,12 +66,6 @@ export function themeList(vue) {
           'background': '#000000',
           'padding-top': `${realPx(48)}px!important`,
           'padding-bottom': `${realPx(48)}px!important`
-        },
-        img: {
-          'width': '100%'
-        },
-        '.epubjs-hl': {
-          'fill': 'red', 'fill-opacity': '0.3', 'mix-blend-mode': 'multiply'
         }
       }
     }
@@ -97,30 +73,39 @@ export function themeList(vue) {
 }
 
 export function addCss(href) {
-  const link = document.createElement("link")
-  link.setAttribute("rel","stylesheet")
-  link.setAttribute("type","text/css")
-  link.setAttribute("href",href)
-  document.getElementsByTagName("head")[0].appendChild(link)
+  const link = document.createElement('link')
+  link.setAttribute('rel', 'stylesheet')
+  link.setAttribute('type', 'text/css')
+  link.setAttribute('href', href)
+  document.getElementsByTagName('head')[0].appendChild(link)
 }
 
-export function removeCas(href) {
-  const links = document.getElementsByTagName("link")
+export function removeCss(href) {
+  const links = document.getElementsByTagName('link')
   for (let i = links.length; i >= 0; i--) {
     const link = links[i]
-    if(link && link.getAttribute("href") && link.getAttribute("href") === href) {
+    if (link && link.getAttribute('href') && link.getAttribute('href') === href) {
       link.parentNode.removeChild(link)
     }
   }
 }
 
 export function removeAllCss() {
-  removeCas("http://192.168.0.102:8383/theme/theme_default.css")
-  removeCas("http://192.168.0.102:8383/theme/theme_eye.css")
-  removeCas("http://192.168.0.102:8383/theme/theme_gold.css")
-  removeCas("http://192.168.0.102:8383/theme/theme_night.css")
+  removeCss(`${process.env.VUE_APP_RES_URL}/theme/theme_default.css`)
+  removeCss(`${process.env.VUE_APP_RES_URL}/theme/theme_eye.css`)
+  removeCss(`${process.env.VUE_APP_RES_URL}/theme/theme_gold.css`)
+  removeCss(`${process.env.VUE_APP_RES_URL}/theme/theme_night.css`)
+}
+
+export function getReadTimeByMinute(fileName) {
+  const readTime = getReadTime(fileName)
+  if (!readTime) {
+    return 0
+  } else {
+    return Math.ceil(readTime / 60)
+  }
 }
 
 export function flatten(array) {
-  return [].concat(...array.map(item => [].concat(item,...flatten(item.subitems))))
+  return [].concat(...array.map(item => [].concat(item, ...flatten(item.subitems))))
 }

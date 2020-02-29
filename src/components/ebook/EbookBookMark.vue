@@ -1,31 +1,29 @@
 <template>
-  <div class="ebook-bookmark" ref="ebookBookmark">
+  <div class="ebook-bookmark" ref="bookmark">
     <div class="ebook-bookmark-text-wrapper">
       <div class="ebook-bookmark-down-wrapper" ref="iconDown">
         <span class="icon-down"></span>
       </div>
-      <div class="ebook-bookmark-text">
-        {{text}}
-      </div>
+      <div class="ebook-bookmark-text">{{text}}</div>
     </div>
-    <div class="ebook-bookmark-icon-wrapper" :style="fixed && !isPaginating ? fixedStyle : {}">
-      <book-mark :width="15" :height="35" :color="color" ref="bookmark"></book-mark>
+    <div class="ebook-bookmark-icon-wrapper" :style="isFixed ? fixedStyle : {}">
+      <bookmark :color="color" :width="15" :height="35"></bookmark>
     </div>
   </div>
 </template>
 
-<script type="text/ecmascript-6">
-  import BookMark from '../../components/common/Bookmark'
-  import { realPx } from '@/utils/utils'
+<script>
+  import { realPx } from '../../utils/utils'
+  import Bookmark from '../common/Bookmark'
   import { ebookMixin } from '../../utils/mixin'
-  import { saveBookmark, getBookmark } from '../../utils/localStorage'
+  import { getBookmark, saveBookmark } from '../../utils/localStorage'
 
   const BLUE = '#346cbc'
   const WHITE = '#fff'
   export default {
     mixins: [ebookMixin],
     components: {
-      BookMark
+      Bookmark
     },
     computed: {
       height() {
@@ -37,82 +35,29 @@
       fixedStyle() {
         return {
           position: 'fixed',
-          right: `${(window.innerWidth - this.$refs.ebookBookmark.clientWidth) / 2}px`,
-          top: 0
+          top: 0,
+          right: `${(window.innerWidth - this.$refs.bookmark.clientWidth) / 2}px`
         }
       }
     },
     watch: {
       offsetY(v) {
-        if (this.settingVisible > 0 || this.menuVisible || this.isPaginating) {
+        if (!this.bookAvailable || this.menuVisible || this.settingVisible >= 0) {
           return
         }
         if (v >= this.height && v < this.threshold) {
-          this.setBookmark = false
-          this.$refs.ebookBookmark.style.top = `${-v}px`
-          if (this.$refs.iconDown.style.transform === 'rotate(180deg)') {
-            this.$refs.iconDown.style.transform = 'rotate(0deg)'
-          }
-          if (!this.isBookmark) {
-            this.text = this.$t('book.pulldownAddMark')
-            this.color = WHITE
-          } else {
-            this.text = this.$t('book.pulldownDeleteMark')
-            this.color = BLUE
-          }
+          this.beforeThreshold(v)
         } else if (v >= this.threshold) {
-          this.setBookmark = true
-          this.$refs.ebookBookmark.style.top = `${-v}px`
-          if (this.$refs.iconDown.style.transform === 'rotate(0deg)' ||
-            this.$refs.iconDown.style.transform === '') {
-            this.$refs.iconDown.style.transform = 'rotate(180deg)'
-          }
-          if (!this.isBookmark) {
-            this.text = this.$t('book.releaseAddMark')
-            this.color = BLUE
-          } else {
-            this.text = this.$t('book.releaseDeleteMark')
-            this.color = WHITE
-          }
+          this.afterThreshold(v)
         } else if (v > 0 && v < this.height) {
-          this.setBookmark = false
-          if (!this.isBookmark) {
-            this.text = this.$t('book.pulldownAddMark')
-          } else {
-            this.text = this.$t('book.pulldownDeleteMark')
-          }
+          this.beforeHeight()
         } else if (v === 0) {
-          if (!this.isBookmark) {
-            if (this.setBookmark) {
-              this.fixed = true
-              this.setAndSaveBookmark()
-            } else {
-              this.fixed = false
-            }
-          } else {
-            if (this.setBookmark) {
-              this.fixed = false
-              this.removeBookmark()
-            } else {
-              this.fixed = true
-            }
-          }
-          setTimeout(() => {
-            this.$refs.ebookBookmark.style.top = `${-this.height}px`
-            this.$refs.iconDown.style.transform = 'rotate(0deg)'
-            if (!this.fixed && this.color === BLUE) {
-              this.color = WHITE
-            }
-            if (this.text === this.$t('book.releaseAddMark')) {
-              this.text = this.$t('book.pulldownAddMark')
-            }
-            this.setBookmark = false
-          }, 200)
+          this.restore()
         }
       },
-      isBookmark(v) {
-        this.fixed = v
-        if (v) {
+      isBookmark(isBookmark) {
+        this.isFixed = isBookmark
+        if (isBookmark) {
           this.color = BLUE
         } else {
           this.color = WHITE
@@ -121,47 +66,92 @@
     },
     data() {
       return {
-        color: WHITE,
         text: '',
-        setBookmark: false,
-        fixed: false
+        color: WHITE,
+        isFixed: false
       }
     },
     methods: {
-      setAndSaveBookmark() {
+      addBookmark() {
         this.bookmark = getBookmark(this.fileName)
         if (!this.bookmark) {
           this.bookmark = []
         }
         const currentLocation = this.currentBook.rendition.currentLocation()
-        const cfibase = currentLocation.start.cfi.replace(/!.*/, '').replace('epubcfi(', '')
-        const cfistart = currentLocation.start.cfi.replace(/.*!/, '').replace(/\)/, '')
-        const cfiend = currentLocation.end.cfi.replace(/.*!/, '').replace(/\)/, '')
-        const cfiRange = `epubcfi(${cfibase}!,${cfistart},${cfiend})`
-        const cfi = currentLocation.start.cfi
-        this.currentBook.getRange(cfiRange).then(range => {
-          let text = range.toString()
-          text = text.replace(/\s\s/g, '')
-          text = text.replace(/\r/g, '')
-          text = text.replace(/\n/g, '')
-          text = text.replace(/\t/g, '')
-          text = text.replace(/\f/g, '')
+        const cfibase = currentLocation.start.cfi.replace(/!.*/, '')
+        const cfistart = currentLocation.start.cfi.replace(/.*!/, '').replace(/\)$/, '')
+        const cfiend = currentLocation.end.cfi.replace(/.*!/, '').replace(/\)$/, '')
+        const cfirange = `${cfibase}!,${cfistart},${cfiend})`
+        this.currentBook.getRange(cfirange).then(range => {
+          const text = range.toString().replace(/\s\s/g, '')
           this.bookmark.push({
-            cfi: cfi,
+            cfi: currentLocation.start.cfi,
             text: text
           })
-          this.setIsBookmark(true)
           saveBookmark(this.fileName, this.bookmark)
         })
       },
       removeBookmark() {
         const currentLocation = this.currentBook.rendition.currentLocation()
         const cfi = currentLocation.start.cfi
+        this.bookmark = getBookmark(this.fileName)
         if (this.bookmark) {
-          this.bookmark = this.bookmark.filter(item => item.cfi !== cfi)
-          saveBookmark(this.fileName, this.bookmark)
+          saveBookmark(this.fileName, this.bookmark.filter(item => item.cfi !== cfi))
+          this.setIsBookmark(false)
         }
-        this.setIsBookmark(false)
+      },
+      restore() {
+        // 状态4：归位
+        setTimeout(() => {
+          this.$refs.bookmark.style.top = `${-this.height}px`
+          this.$refs.iconDown.style.transform = 'rotate(0deg)'
+        }, 200)
+        if (this.isFixed) {
+          this.setIsBookmark(true)
+          this.addBookmark()
+        } else {
+          this.setIsBookmark(false)
+          this.removeBookmark()
+        }
+      },
+      beforeHeight() {
+        // 状态1：未超过书签的高度
+        if (this.isBookmark) {
+          this.text = this.$t('book.pulldownDeleteMark')
+          this.color = BLUE
+          this.isFixed = true
+        } else {
+          this.text = this.$t('book.pulldownAddMark')
+          this.color = WHITE
+          this.isFixed = false
+        }
+      },
+      beforeThreshold(v) {
+        // 状态2：未到达零界状态
+        this.$refs.bookmark.style.top = `${-v}px`
+        this.beforeHeight()
+        const iconDown = this.$refs.iconDown
+        if (iconDown.style.transform === 'rotate(180deg)') {
+          iconDown.style.transform = 'rotate(0deg)'
+        }
+      },
+      afterThreshold(v) {
+        // 状态3：超越零界状态
+        this.$refs.bookmark.style.top = `${-v}px`
+        if (this.isBookmark) {
+          this.text = this.$t('book.releaseDeleteMark')
+          this.color = WHITE
+          this.isFixed = false
+        } else {
+          this.text = this.$t('book.releaseAddMark')
+          this.color = BLUE
+          this.isFixed = true
+        }
+        const iconDown = this.$refs.iconDown
+        if (iconDown.style.transform === '' ||
+          iconDown.style.transform === 'rotate(0deg)') {
+          iconDown.style.transform = 'rotate(180deg)'
+        }
       }
     }
   }
@@ -169,6 +159,7 @@
 
 <style lang="scss" rel="stylesheet/scss" scoped>
   @import "../../assets/styles/global";
+
   .ebook-bookmark {
     position: absolute;
     top: px2rem(-35);
@@ -196,7 +187,7 @@
       position: absolute;
       right: 0;
       bottom: 0;
-      margin-right: px2rem(10);
+      margin-right: px2rem(15);
     }
   }
 </style>
